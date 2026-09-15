@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Chain {
+  SOLANA
+  BASE
+  ETHEREUM
+}
+
+enum TradeSide {
+  BUY
+  SELL
+}
+
+enum PositionStatus {
+  OPEN
+  CLOSED
+}
+
+enum NotificationType {
+  FOLLOWED_TRADE
+  PRICE_MILESTONE
+  NEW_LISTING
+  WHALE_TRADE
+  COPY_TRADE_EXECUTED
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  handle      String   @unique
+  displayName String
+  avatarUrl   String?
+  bio         String?
+  isDemo      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  wallets                   Wallet[]
+  following                 Follow[]                     @relation("Follower")
+  followers                 Follow[]                     @relation("Followee")
+  trades                    Trade[]
+  positions                 Position[]
+  theses                    Thesis[]
+  copyAsFollower            CopyTradeSubscription[]      @relation("CopyFollower")
+  copyAsTrader              CopyTradeSubscription[]      @relation("CopyTrader")
+  notificationPreferences   NotificationPreference[]
+  sessions                  Session[]
+  otpChallenges             OtpChallenge[]
+  leaderboardEntries        LeaderboardEntry[]
+}
+
+model OtpChallenge {
+  id         String    @id @default(uuid())
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String?
+  email      String
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([email, createdAt])
+}
+
+model Session {
+  id               String    @id @default(uuid())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  refreshTokenHash String
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+  revokedAt        DateTime?
+
+  @@index([userId])
+}
+
+model Wallet {
+  id          String   @id @default(uuid())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  chain       Chain
+  address     String
+  provider    String
+  providerRef String?
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, chain])
+  @@index([address])
+}
+
+model Follow {
+  follower   User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followerId String
+  followee   User     @relation("Followee", fields: [followeeId], references: [id], onDelete: Cascade)
+  followeeId String
+  createdAt  DateTime @default(now())
+
+  @@id([followerId, followeeId])
+}
+
+model Trade {
+  id           String    @id @default(uuid())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  chain        Chain
+  tokenAddress String
+  tokenSymbol  String
+  tokenName    String
+  side         TradeSide
+  amountToken  Decimal   @db.Decimal(38, 18)
+  priceUsd     Decimal   @db.Decimal(38, 18)
+  usdValue     Decimal   @db.Decimal(18, 2)
+  txHash       String
+  createdAt    DateTime  @default(now())
+  thesis       Thesis?
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+model Position {
+  id               String         @id @default(uuid())
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  tokenAddress     String
+  tokenSymbol      String
+  chain            Chain
+  avgEntryPrice    Decimal        @db.Decimal(38, 18)
+  amountHeld       Decimal        @db.Decimal(38, 18)
+  realizedPnlUsd   Decimal        @db.Decimal(18, 2)
+  unrealizedPnlUsd Decimal        @db.Decimal(18, 2)
+  volumeUsd        Decimal        @db.Decimal(18, 2) @default(0)
+  status           PositionStatus
+  openedAt         DateTime       @default(now())
+  closedAt         DateTime?
+
+  @@index([userId, status])
+}
+
+model Thesis {
+  id        String   @id @default(uuid())
+  trade     Trade    @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  tradeId   String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  text      String
+  likes     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model CopyTradeSubscription {
+  id             String   @id @default(uuid())
+  follower       User     @relation("CopyFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  followerId     String
+  trader         User     @relation("CopyTrader", fields: [traderId], references: [id], onDelete: Cascade)
+  traderId       String
+  maxUsdPerTrade Decimal  @db.Decimal(18, 2)
+  allocationPct  Decimal? @db.Decimal(5, 2)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@unique([followerId, traderId])
+}
+
+model NotificationPreference {
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  String
+  type    NotificationType
+  enabled Boolean          @default(true)
+
+  @@id([userId, type])
+}
+
+model LeaderboardEntry {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  window     String
+  pnlUsd     Decimal  @db.Decimal(18, 2)
+  volumeUsd  Decimal  @db.Decimal(18, 2)
+  winRate    Decimal  @db.Decimal(5, 4)
+  rank       Int
+  computedAt DateTime @default(now())
+
+  @@unique([userId, window])
+  @@index([window, rank])
+}

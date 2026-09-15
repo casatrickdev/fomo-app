@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  api:
+    name: API lint, typecheck, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @kite/shared-types build
+      - run: pnpm --filter @kite/ui build
+      - run: pnpm --filter @kite/api prisma:generate
+      - run: pnpm --filter @kite/api typecheck
+      - run: pnpm --filter @kite/api lint
+      - run: pnpm --filter @kite/api test
+        env:
+          JWT_ACCESS_SECRET: ci-access
+          JWT_REFRESH_SECRET: ci-refresh
+          DATABASE_URL: postgresql://kite:kite@localhost:5432/kite?schema=public
+
+  mobile:
+    name: Mobile typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @kite/shared-types build
+      - run: pnpm --filter @kite/ui build
+      - run: pnpm --filter @kite/mobile typecheck

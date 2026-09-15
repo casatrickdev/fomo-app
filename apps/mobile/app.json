@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Kite",
+    "slug": "kite",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "kite",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#070A12"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "dev.kite.app"
+    },
+    "android": {
+      "package": "dev.kite.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#070A12",
+        "foregroundImage": "./assets/icon.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": ["expo-secure-store", "expo-notifications"]
+  }
+}
