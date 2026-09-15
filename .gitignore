@@ -17,8 +17,8 @@ apps/api/src/generated
 .turbo
 .pnpm-debug.log
 .idea
-.vscode/*
-!.vscode/extensions.json
+.vscode
+.cursor
 *.pem
 *.key
 secrets/
